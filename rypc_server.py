@@ -1,23 +1,15 @@
 import rpyc
-import argparse, socket
 import sys
-import time, os, glob
+import glob
 
 def main():
     from rpyc.utils.server import OneShotServer
-    t = OneShotServer(MyService2, port = 18861)
+    t = OneShotServer(EncryptService, port = 18861)
     t.start()
     t.close()
     sys.exit(0)
 
-class MyService(rpyc.Service):
-    def exposed_line_counter(self, fileobj, function):
-        print('Client has invoked exposed_line_counter()')
-        for linenum, line in enumerate(fileobj.readlines()):
-            function(line)
-        return linenum + 1
-
-class MyService2(rpyc.Service):
+class EncryptService(rpyc.Service):
     def exposed_cetak2(self, String, function):
         print('ngirim')
         return function(String)
