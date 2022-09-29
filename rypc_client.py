@@ -8,31 +8,24 @@ def main():
     while(option != "quit"):
         option=input("Input command: ")
         msg=option.split()
-        if(msg[0] == "ls"):
-            if(len(option) == 2):
-                proxy.root.ngelist1(print_message)
-            else:
-                msg2 = ' '.join(msg[1:])
-                proxy.root.ngelist2(msg2, print_message)
-
-        elif(msg[0] == "count"):
-            msg2 = ' '.join(msg[1:])
-            proxy.root.itung(msg2, print_message)
-        elif(msg[0] == "put"):
-            msg2 = ' '.join(msg[1:])
-            proxy.root.put(msg2, print_message)
-        elif(msg[0] == "get"):
-            msg2 = ' '.join(msg[1:])
-            proxy.root.get(msg2, print_message)
+        if(msg[0] == "e_aes"):
+            file_path = input("input path file [plaintext]: ")
+            password = input("input password: ")
+            with open(file_path, 'r') as f:
+                data_file = f.read()
+            proxy.root.encrypt_AES(data_file, file_path, password)
+            print("File berhasil diencrypt")
+        elif(msg[0] == "d_aes"):
+            file_path = input("input path file [ciphertext]: ")
+            password = input("input password: ")
+            with open(file_path, 'rb') as f:
+                data_file = f.read()
+            proxy.root.decrypt_AES(data_file, file_path, password)
+            print("File berhasil diencrypt")
         elif(msg[0] == "quit"):
-            proxy.root.quit(print_message)
             time.sleep(2)
             proxy.close()
         else:
             print("No Command, please retry\n==========================\n")
-    
-def print_message(string):
-    print(string)
-
 if __name__ == '__main__':
     main()

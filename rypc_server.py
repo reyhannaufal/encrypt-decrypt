@@ -1,68 +1,60 @@
 import rpyc
 import sys
-import glob
+import base64
+import hashlib
+from Cryptodome.Cipher import AES
+from Cryptodome.Random import get_random_bytes
 
-def main():
-    from rpyc.utils.server import OneShotServer
-    t = OneShotServer(EncryptService, port = 18861)
-    t.start()
-    t.close()
-    sys.exit(0)
 
-class EncryptService(rpyc.Service):
-    def exposed_cetak2(self, String, function):
-        print('ngirim')
-        return function(String)
-    def exposed_ngelist1(self, function):
-        print("Ngelist...")
-        daftar=glob.glob("./*")
-        isi=" "
-        for i in daftar:
-                isi += i + "\n"
-        print("Udah ngelistnya yeay")
-        return function(isi)
-    def exposed_ngelist2(self, String, function):
-        print("Ngelist...")
-        daftar=glob.glob(String)
-        isi=" "
-        for i in daftar:
-                isi += i + "\n"
-        print("Udah ngelistnya yeay")
-        return function(isi)
-    def exposed_itung(self, String, function):
-        print("Ngitung...")
-        daftar=glob.glob(String)
-        count=0
-        for i in daftar:
-                count+=1
-        print("Udah ngitungnya yeay")
-        return function(count)
-    def exposed_get(self, String, function):
-        print('Ngambil...')
-        msg=String.split()
-        tempat= ' '.join(msg[:-1])
-        tempat2=[tempat, msg[-1]]
-        msg2 = '/'.join(tempat2)
-        f=open(msg2, "rb")
-        b=f.read()
-        tulis= "fetch: " + tempat + "\nsize: " + str(len(b)) + "\nlokal: " + msg[-1]
-        print("Udah ngambilnya yeay")
-        return function(tulis)
-    def exposed_put(self, String, function):
-        print('Bikin...')
-        msg=String.split()
-        tempat= ' '.join(msg[1:])
-        tempat2=[tempat, msg[0]]
-        msg2 = '/'.join(tempat2)
-        f=open(msg2, "x")
-        f.close()
-        tulis= "put: " + tempat + "\nlokal: " + msg[0]
-        print("Udah bikinnya yeay")
-        return function(tulis)
+def encrypt_AES(raw):
+    BS = AES.block_size
+    pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+
+    raw = base64.b64encode(pad(raw).encode('utf8'))
+    iv = get_random_bytes(AES.block_size)
+    cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=__key__)
+    return base64.b64encode(iv + cipher.encrypt(raw))
+
+def decrypt_AES(enc):
+    enc = base64.b64decode(enc)
+    iv = enc[:AES.block_size]
+    cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=__key__)
+    return base64.b64decode(cipher.decrypt(enc[AES.block_size:])).decode('utf8').rstrip(chr(AES.block_size))
+
+# generate key
+def generate_key(password):
+    global __key__
+    __key__ = hashlib.sha256(password.encode()).digest()
+
+
+class SscretMessageService(rpyc.Service):
+    def exposed_encrypt_AES(self, plain_text, file_path, password):
+       generate_key(password)
+       ciphertext = encrypt_AES(plain_text)
+       with open(file_path, 'wb') as f:
+            f.write(ciphertext)
+       print(__key__)
+       print("File encrypted [server]")
+    def exposed_decrypt_AES(self, cipher_text, file_path, password):
+        __key__ = password
+        cipher_text = cipher_text.decode('utf-8')
+        plaintext = decrypt_AES(cipher_text)
+        with open(file_path, 'w') as f:
+            f.write(plaintext)
+        print("File decrypted [server]")
     def exposed_quit(self, function):
         print('Shutting down...')
         function("Bye bye")
         sys.exit(0)
+
+
+
+def main():
+    from rpyc.utils.server import OneShotServer
+    t = OneShotServer(SscretMessageService, port = 18861)
+    t.start()
+    t.close()
+    sys.exit(0)
 
 if __name__ == '__main__':
     main()
