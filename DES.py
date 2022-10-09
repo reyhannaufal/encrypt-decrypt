@@ -1,31 +1,30 @@
 from Crypto.Cipher import DES
-from secrets import token_bytes
+from Crypto.Util.Padding import pad, unpad
+import binascii
 
-key = token_bytes(8)
-
-
-def encrypt(msg):
-    cipher = DES.new(key, DES.MODE_EAX)
-    nonce = cipher.nonce
-    ciphertext, tag = cipher.encrypt_and_digest(msg.encode('ascii'))
-    return nonce, ciphertext, tag
+key = pad(b"mykey", DES.block_size)
+iv = pad(b"myiv", DES.block_size)
 
 
-def decrypt(nonce, ciphertext, tag):
-    cipher = DES.new(key, DES.MODE_EAX, nonce=nonce)
-    plaintext = cipher.decrypt(ciphertext)
-
-    try:
-        cipher.verify(tag)
-        return plaintext.decode('ascii')
-    except:
-        return False
+def encrypt(plaintext):
+    data_bytes = bytes(plaintext, 'utf-8')
+    padded_bytes = pad(data_bytes, DES.block_size)
+    DES_obj = DES.new(key, DES.MODE_CBC, iv)
+    ciphertext = DES_obj.encrypt(padded_bytes)
+    return ciphertext
 
 
-nonce, ciphertext, tag = encrypt(input('Enter a message: '))
-plaintext = decrypt(nonce, ciphertext, tag)
+def decrypt(ciphertext):
+    DES_obj = DES.new(key, DES.MODE_CBC, iv)
+    raw_bytes = DES_obj.decrypt(ciphertext)
+    extracted_bytes = unpad(raw_bytes, DES.block_size)
+    return extracted_bytes
 
-print(f'Cipher Text: {ciphertext}')
+
+ciphertext = encrypt(input('Enter a message: '))
+plaintext = decrypt(ciphertext)
+
+print(f'Cipher Text: {binascii.hexlify(ciphertext)}')
 
 if not plaintext:
     print('Message is corrupted!')
