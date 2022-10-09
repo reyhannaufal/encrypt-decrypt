@@ -46,6 +46,64 @@ def decrypt_DES(ciphertext):
     extracted_bytes = unpad(raw_bytes, DES.block_size)
     return extracted_bytes
 
+def KSA(key):
+    sched = [i for i in range(0, 256)]
+    
+    i = 0
+    for j in range(0, 256):
+        i = (i + sched[j] + key[j % len(key)]) % 256
+        
+        tmp = sched[j]
+        sched[j] = sched[i]
+        sched[i] = tmp
+        
+    return sched
+    
+
+def stream_generation(sched):
+    i = 0
+    j = 0
+    while True:
+        i = (1 + i) % 256
+        j = (sched[i] + j) % 256
+        
+        tmp = sched[j]
+        sched[j] = sched[i]
+        sched[i] = tmp
+        
+        yield sched[(sched[i] + sched[j]) % 256]        
+
+
+def encrypt_RC4(text, key):
+    text = [ord(char) for char in text]
+    key = [ord(char) for char in key]
+    
+    sched = KSA(key)
+    key_stream = stream_generation(sched)
+    
+    ciphertext = ''
+    for char in text:
+        enc = str(hex(char ^ next(key_stream))).upper()
+        ciphertext += (enc)
+        
+    return ciphertext
+    
+
+def decrypt_RC4(ciphertext, key):
+    ciphertext = ciphertext.split('0X')[1:]
+    ciphertext = [int('0x' + c.lower(), 0) for c in ciphertext]
+    key = [ord(char) for char in key]
+    
+    sched = KSA(key)
+    key_stream = stream_generation(sched)
+    
+    plaintext = ''
+    for char in ciphertext:
+        dec = str(chr(char ^ next(key_stream)))
+        plaintext += dec
+    
+    return plaintext
+
 
 class SecretMessageService(rpyc.Service):
     def exposed_encrypt_AES(self, plain_text, file_path, password):
@@ -71,6 +129,14 @@ class SecretMessageService(rpyc.Service):
         else:
             with open(file_path, 'w') as f:
                 f.write(plaintext.decode("utf-8"))
+    def exposed_encrypt_RC4(self, plain_text, file_path, password):
+       ciphertext = encrypt_RC4(plain_text, password)
+       with open(file_path, 'wb') as f:
+            f.write(ciphertext)
+    def exposed_decrypt_RC4(self, cipher_text, file_path, password):
+       plaintext = decrypt_RC4(cipher_text, password)
+       with open(file_path, 'wb') as f:
+            f.write(plaintext)
     def exposed_quit(self, function):
         print('Shutting down...')
         function("Bye bye")

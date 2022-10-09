@@ -7,6 +7,8 @@ class Command(Enum):
     D_AES = "decrypt_aes"
     E_DES = "encrypt_des"
     D_DES = "decrypt_des"
+    E_RC4 = "encrypt_rc4"
+    D_RC4 = "decrypt_rc4"
     QUIT = "quit"
     
 class TEXT_INPUT(Enum):
@@ -50,6 +52,18 @@ def user_input_handler(proxy, user_input_command):
         with open(file_path, 'rb') as f:
             data_file = f.read()
         proxy.root.decrypt_DES(data_file, file_path)
+        print(TEXT_INPUT.SUCESS.value)
+    elif(user_input_command == Command.E_RC4.value):
+        file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        with open(file_path, 'rb') as f:
+            data_file = f.read()
+        proxy.root.encrypt_RC4(data_file, file_path)
+        print(TEXT_INPUT.SUCESS.value)
+    elif(user_input_command == Command.D_RC4.value):
+        file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        with open(file_path, 'rb') as f:
+            data_file = f.read()
+        proxy.root.decrypt_RC4(data_file, file_path)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.QUIT.value):
         time.sleep(2)
