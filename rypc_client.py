@@ -1,6 +1,7 @@
 import rpyc
 import time
 from enum import Enum
+from pathlib import Path
 
 class Command(Enum):
     E_AES  = "encrypt_aes"
@@ -24,11 +25,20 @@ def print_menu():
         print(f'{i.value}')
     print(f'{"="*20} {"="*20}')
 
+def is_not_file(file_path):
+    if Path(file_path).is_file():
+        return False
+    else:
+        print("AYYO there's no such file yo!\n==========================\n")
+        return True
+
 def user_input_handler(proxy, user_input_command):
     print(
             f"Command: {user_input_command} - {Command(user_input_command).value}")
     if(user_input_command == Command.E_AES.value):
         file_path = input(TEXT_INPUT.PLAINTEXT.value)
+        if is_not_file(file_path):
+            return
         password = input(TEXT_INPUT.PASSWORD.value)
         with open(file_path, 'r') as f:
             data_file = f.read()
@@ -36,6 +46,8 @@ def user_input_handler(proxy, user_input_command):
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.D_AES.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        if is_not_file(file_path):
+            return
         password = input(TEXT_INPUT.PASSWORD.value)
         with open(file_path, 'rb') as f:
             data_file = f.read()
@@ -43,18 +55,24 @@ def user_input_handler(proxy, user_input_command):
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.E_DES.value):
         file_path = input(TEXT_INPUT.PLAINTEXT.value)
+        if is_not_file(file_path):
+            return
         with open(file_path, 'r') as f:
             data_file = f.read()
         proxy.root.encrypt_DES(data_file, file_path)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.D_DES.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        if is_not_file(file_path):
+            return
         with open(file_path, 'rb') as f:
             data_file = f.read()
         proxy.root.decrypt_DES(data_file, file_path)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.E_RC4.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        if is_not_file(file_path):
+            return
         password = input(TEXT_INPUT.PASSWORD.value)
         with open(file_path, 'r') as f:
             data_file = f.read()
@@ -62,6 +80,8 @@ def user_input_handler(proxy, user_input_command):
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.D_RC4.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        if is_not_file(file_path):
+            return
         password = input(TEXT_INPUT.PASSWORD.value)
         with open(file_path, 'r') as f:
             data_file = f.read()
