@@ -56,16 +56,16 @@ def user_input_handler(proxy, user_input_command):
     elif(user_input_command == Command.E_RC4.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
         password = input(TEXT_INPUT.PASSWORD.value)
-        with open(file_path, 'rb') as f:
+        with open(file_path, 'r') as f:
             data_file = f.read()
-        proxy.root.encrypt_RC4(data_file, file_path)
+        proxy.root.encrypt_RC4(data_file, file_path, password)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.D_RC4.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
         password = input(TEXT_INPUT.PASSWORD.value)
-        with open(file_path, 'rb') as f:
+        with open(file_path, 'r') as f:
             data_file = f.read()
-        proxy.root.decrypt_RC4(data_file, file_path)
+        proxy.root.decrypt_RC4(data_file, file_path, password)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.QUIT.value):
         time.sleep(2)

@@ -131,11 +131,11 @@ class SecretMessageService(rpyc.Service):
                 f.write(plaintext.decode("utf-8"))
     def exposed_encrypt_RC4(self, plain_text, file_path, password):
        ciphertext = encrypt_RC4(plain_text, password)
-       with open(file_path, 'wb') as f:
+       with open(file_path, 'w') as f:
             f.write(ciphertext)
     def exposed_decrypt_RC4(self, cipher_text, file_path, password):
        plaintext = decrypt_RC4(cipher_text, password)
-       with open(file_path, 'wb') as f:
+       with open(file_path, 'w') as f:
             f.write(plaintext)
     def exposed_quit(self, function):
         print('Shutting down...')
