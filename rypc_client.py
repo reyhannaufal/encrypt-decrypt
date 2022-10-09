@@ -54,8 +54,6 @@ def user_input_handler(proxy, user_input_command):
     elif(user_input_command == Command.QUIT.value):
         time.sleep(2)
         proxy.close()
-    else:
-        print("No Command, please retry\n==========================\n")
 
 def main():
     config = {'allow_public_attrs': True}
@@ -66,6 +64,9 @@ def main():
         option = input("Input command: ")
         msg = option.split()
         user_input_command = msg[0]
+        if user_input_command not in Command._value2member_map_: 
+            print("No Command, please retry\n==========================\n")
+            continue
         user_input_handler(proxy, user_input_command)
 
 
