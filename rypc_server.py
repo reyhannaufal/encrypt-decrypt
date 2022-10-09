@@ -5,11 +5,12 @@ import hashlib
 from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
 from Crypto.Cipher import DES
-from secrets import token_bytes
+from Crypto.Util.Padding import pad, unpad
+import binascii
 
-_key_des__ = token_bytes(8)
+__key_des__ = pad(b"mykey", DES.block_size)
+__iv_des__ = pad(b"myiv", DES.block_size)
 __key_aes__ = None
-
 
 
 def encrypt_AES(raw):
@@ -27,58 +28,49 @@ def decrypt_AES(enc):
     cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=__key_aes__)
     return base64.b64decode(cipher.decrypt(enc[AES.block_size:])).decode('utf8').rstrip(chr(AES.block_size))
 
-# generate key
 def generate_key(password):
     __key_aes__ = hashlib.sha256(password.encode()).digest()
 
 
-def encrypt_DES(msg):
-    cipher = DES.new(_key_des__, DES.MODE_EAX)
-    nonce = cipher.nonce
-    ciphertext, tag = cipher.encrypt_and_digest(msg.encode('ascii'))
-    return nonce, ciphertext, tag
+def encrypt_DES(plaintext):
+    data_bytes = bytes(plaintext, 'utf-8')
+    padded_bytes = pad(data_bytes, DES.block_size)
+    DES_obj = DES.new(__key_des__, DES.MODE_CBC, __iv_des__)
+    ciphertext = DES_obj.encrypt(padded_bytes)
+    return ciphertext
 
 
-def decrypt_DES(nonce, ciphertext, tag):
-    cipher = DES.new(_key_des__, DES.MODE_EAX, nonce=nonce)
-    plaintext = cipher.decrypt(ciphertext)
-
-    try:
-        cipher.verify(tag)
-        return plaintext.decode('ascii')
-    except:
-        return False
+def decrypt_DES(ciphertext):
+    DES_obj = DES.new(__key_des__, DES.MODE_CBC, __iv_des__)
+    raw_bytes = DES_obj.decrypt(ciphertext)
+    extracted_bytes = unpad(raw_bytes, DES.block_size)
+    return extracted_bytes
 
 
-class SscretMessageService(rpyc.Service):
+class SecretMessageService(rpyc.Service):
     def exposed_encrypt_AES(self, plain_text, file_path, password):
        generate_key(password)
        ciphertext = encrypt_AES(plain_text)
        with open(file_path, 'wb') as f:
             f.write(ciphertext)
-       print("File encrypted [server]")
     def exposed_decrypt_AES(self, cipher_text, file_path, password):
         __key__ = password
         cipher_text = cipher_text.decode('utf-8')
         plaintext = decrypt_AES(cipher_text)
         with open(file_path, 'w') as f:
             f.write(plaintext)
-        print("File decrypted [server]")
     def exposed_encrypt_DES(self, plain_text, file_path):
-        nonce, ciphertext, tag = encrypt_DES(plain_text)
+        ciphertext = encrypt_DES(plain_text)
+        result = binascii.hexlify(ciphertext)
         with open(file_path, 'wb') as f:
-            f.write(nonce)
-            f.write(ciphertext)
-            f.write(tag)
-        print("File encrypted [server]")
+            f.write(result)
     def exposed_decrypt_DES(self, cipher_text, file_path):
-        nonce = cipher_text[:8]
-        ciphertext = cipher_text[8:-16]
-        tag = cipher_text[-16:]
-        plaintext = decrypt_DES(nonce, ciphertext, tag)
-        with open(file_path, 'w') as f:
-            f.write(plaintext)
-        print("File decrypted [server]")
+        plaintext = decrypt_DES(binascii.unhexlify(cipher_text))
+        if not plaintext:
+            print('Message is corrupted!')
+        else:
+            with open(file_path, 'w') as f:
+                f.write(plaintext.decode("utf-8"))
     def exposed_quit(self, function):
         print('Shutting down...')
         function("Bye bye")
@@ -88,7 +80,7 @@ class SscretMessageService(rpyc.Service):
 
 def main():
     from rpyc.utils.server import OneShotServer
-    t = OneShotServer(SscretMessageService, port = 18861)
+    t = OneShotServer(SecretMessageService, port = 18861)
     t.start()
     t.close()
     sys.exit(0)
