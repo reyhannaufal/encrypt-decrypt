@@ -1,35 +1,57 @@
+from pydoc import plain
 import rpyc
 import sys
 import base64
 import hashlib
 from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
-from Crypto.Cipher import DES
-from Crypto.Util.Padding import pad, unpad
+from Cryptodome.Cipher import DES
+from Crypto.Cipher import ARC4
+from Crypto.Hash import SHA256
+from Crypto import Random
+from Cryptodome.Util.Padding import pad, unpad
 import binascii
+import pyAesCrypt
+from timer import Timer
+import os
 
 __key_des__ = pad(b"mykey", DES.block_size)
 __iv_des__ = pad(b"myiv", DES.block_size)
-__key_aes__ = None
+SPECIAL_KEY_FOR_FILES = 'why_so_serious'
 
 
-def encrypt_AES(raw):
+RunningTime = Timer()
+
+
+def encrypt_AES(raw, key):
     BS = AES.block_size
     pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
 
     raw = base64.b64encode(pad(raw).encode('utf8'))
     iv = get_random_bytes(AES.block_size)
-    cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=__key_aes__)
+    cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=key)
     return base64.b64encode(iv + cipher.encrypt(raw))
 
-def decrypt_AES(enc):
+def decrypt_AES(enc, key):
     enc = base64.b64decode(enc)
     iv = enc[:AES.block_size]
-    cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=__key_aes__)
+    cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=key)
     return base64.b64decode(cipher.decrypt(enc[AES.block_size:])).decode('utf8').rstrip(chr(AES.block_size))
+
+def encrypt_file_AES(file_name):
+    output = file_name + ".enc"
+    pyAesCrypt.encryptFile(file_name, output, SPECIAL_KEY_FOR_FILES)
+    return output
+
+def decrypt_file_AES(file_name):
+    dfile = file_name.split(".")
+    output = dfile[0] + "dec." + dfile[1]
+    pyAesCrypt.decryptFile(file_name, output, SPECIAL_KEY_FOR_FILES)
+    return
 
 def generate_key(password):
     __key_aes__ = hashlib.sha256(password.encode()).digest()
+    return __key_aes__
 
 
 def encrypt_DES(plaintext):
@@ -87,7 +109,11 @@ def encrypt_RC4(text, key):
         ciphertext += (enc)
         
     return ciphertext
-    
+
+def enc(file_name,text, key):
+    output = file_name + ".enc"
+    ARC4.new(key).encrypt(text)
+    return output
 
 def decrypt_RC4(ciphertext, key):
     ciphertext = ciphertext.split('0X')[1:]
@@ -107,36 +133,87 @@ def decrypt_RC4(ciphertext, key):
 
 class SecretMessageService(rpyc.Service):
     def exposed_encrypt_AES(self, plain_text, file_path, password):
-       generate_key(password)
-       ciphertext = encrypt_AES(plain_text)
-       with open(file_path, 'wb') as f:
-            f.write(ciphertext)
+        RunningTime.start()
+        key = generate_key(password)
+        ciphertext = None
+        if file_path.endswith('.mp4') or file_path.endswith('.jpg'):
+            ciphertext = encrypt_file_AES(file_path)
+        else:
+            ciphertext = encrypt_AES(plain_text, key)
+            with open(file_path, 'wb') as f:
+                    f.write(ciphertext)
+        print("==========================================================")
+        print("Running Time - Encrypt AES Method")
+        RunningTime.stop()
+        print("==========================================================")
     def exposed_decrypt_AES(self, cipher_text, file_path, password):
-        __key__ = password
-        cipher_text = cipher_text.decode('utf-8')
-        plaintext = decrypt_AES(cipher_text)
-        with open(file_path, 'w') as f:
-            f.write(plaintext)
+        key = generate_key(password)
+        RunningTime.start()
+        if file_path.endswith('.enc'):
+            plaintext = decrypt_file_AES(file_path)
+        else:
+            plaintext = decrypt_AES(cipher_text, key)
+            with open(file_path, 'w') as f:
+                f.write(plaintext)
+        print("==========================================================")
+        print("Running Time - Decrypt AES Method")
+        RunningTime.stop()
+        print("==========================================================")
     def exposed_encrypt_DES(self, plain_text, file_path):
+        RunningTime.start()
         ciphertext = encrypt_DES(plain_text)
         result = binascii.hexlify(ciphertext)
         with open(file_path, 'wb') as f:
             f.write(result)
+        print("==========================================================")
+        print("Running Time - Encrypt DES Method")
+        RunningTime.stop()
+        print("==========================================================")
     def exposed_decrypt_DES(self, cipher_text, file_path):
+        RunningTime.start()
         plaintext = decrypt_DES(binascii.unhexlify(cipher_text))
         if not plaintext:
             print('Message is corrupted!')
         else:
             with open(file_path, 'w') as f:
                 f.write(plaintext.decode("utf-8"))
+        print("==========================================================")
+        print("Running Time - Decrypt DES Method")
+        RunningTime.stop()
+        print("==========================================================")
     def exposed_encrypt_RC4(self, plain_text, file_path, password):
-       ciphertext = encrypt_RC4(plain_text, password)
-       with open(file_path, 'wb') as f:
-            f.write(ciphertext)
+        RunningTime.start()
+        if file_path.endswith('.mp4') or file_path.endswith('.jpg') or file_path.endswith('.png'):
+            output = file_path + ".enc"
+            text = plain_text.decode('utf-8')
+            ciphertext = encrypt_RC4(text, password)
+            with open(output, 'w') as f:
+                f.write(ciphertext)
+        else:
+            ciphertext = encrypt_RC4(plain_text, password)
+            with open(file_path, 'w') as f:
+                f.write(ciphertext)
+        print("==========================================================")
+        print("Running Time - Encrypt RC4 Method")
+        RunningTime.stop()
+        print("==========================================================")
     def exposed_decrypt_RC4(self, cipher_text, file_path, password):
-       plaintext = decrypt_RC4(cipher_text, password)
-       with open(file_path, 'wb') as f:
-            f.write(plaintext)
+        RunningTime.start()
+        if file_path.endswith('.enc'):
+            output = file_path + ".dec"
+            text = decrypt_RC4(cipher_text, password)
+            plaintext = base64.b64decode(text)
+            with open(output, 'wb') as f:                
+                f.write(plaintext)
+            # print(type(plaintext))
+        else:
+            plaintext = decrypt_RC4(cipher_text, password)
+            with open(file_path, 'w') as f:
+                f.write(plaintext)
+        print("==========================================================")
+        print("Running Time - Decrypt RC4 Method")
+        RunningTime.stop()
+        print("==========================================================")
     def exposed_quit(self, function):
         print('Shutting down...')
         function("Bye bye")
