@@ -7,10 +7,14 @@ from Cryptodome.Random import get_random_bytes
 from Cryptodome.Cipher import DES
 from Cryptodome.Util.Padding import pad, unpad
 import binascii
+import pyAesCrypt
 from timer import Timer
 
 __key_des__ = pad(b"mykey", DES.block_size)
 __iv_des__ = pad(b"myiv", DES.block_size)
+SPECIAL_KEY_FOR_FILES = 'why_so_serious'
+
+
 RunningTime = Timer()
 
 
@@ -28,6 +32,17 @@ def decrypt_AES(enc, key):
     iv = enc[:AES.block_size]
     cipher = AES.new(mode= AES.MODE_CFB,iv= iv, key=key)
     return base64.b64decode(cipher.decrypt(enc[AES.block_size:])).decode('utf8').rstrip(chr(AES.block_size))
+
+def encrypt_file_AES(file_name):
+    output = file_name + ".enc"
+    pyAesCrypt.encryptFile(file_name, output, SPECIAL_KEY_FOR_FILES)
+    return output
+
+def decrypt_file_AES(file_name):
+    dfile = file_name.split(".")
+    output = dfile[0] + "dec." + dfile[1]
+    pyAesCrypt.decryptFile(file_name, output, SPECIAL_KEY_FOR_FILES)
+    return
 
 def generate_key(password):
     __key_aes__ = hashlib.sha256(password.encode()).digest()
@@ -109,24 +124,28 @@ def decrypt_RC4(ciphertext, key):
 
 class SecretMessageService(rpyc.Service):
     def exposed_encrypt_AES(self, plain_text, file_path, password):
-        # RunningTime.start()
-        key = generate_key(password)
         RunningTime.start()
-        ciphertext = encrypt_AES(plain_text, key)
-        with open(file_path, 'wb') as f:
-                f.write(ciphertext)
+        key = generate_key(password)
+        ciphertext = None
+        if file_path.endswith('.mp4') or file_path.endswith('.jpg'):
+            ciphertext = encrypt_file_AES(file_path)
+        else:
+            ciphertext = encrypt_AES(plain_text, key)
+            with open(file_path, 'wb') as f:
+                    f.write(ciphertext)
         print("==========================================================")
         print("Running Time - Encrypt AES Method")
         RunningTime.stop()
         print("==========================================================")
     def exposed_decrypt_AES(self, cipher_text, file_path, password):
-        # RunningTime.start()
         key = generate_key(password)
         RunningTime.start()
-        cipher_text = cipher_text.decode('utf-8')
-        plaintext = decrypt_AES(cipher_text, key)
-        with open(file_path, 'w') as f:
-            f.write(plaintext)
+        if file_path.endswith('.enc'):
+            plaintext = decrypt_file_AES(file_path)
+        else:
+            plaintext = decrypt_AES(cipher_text, key)
+            with open(file_path, 'w') as f:
+                f.write(plaintext)
         print("==========================================================")
         print("Running Time - Decrypt AES Method")
         RunningTime.stop()

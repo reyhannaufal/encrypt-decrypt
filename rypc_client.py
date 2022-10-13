@@ -40,8 +40,10 @@ def user_input_handler(proxy, user_input_command):
         if is_not_file(file_path):
             return
         password = input(TEXT_INPUT.PASSWORD.value)
-        with open(file_path, 'r') as f:
-            data_file = f.read()
+        data_file = None
+        if file_path.endswith('.txt'):
+            with open(file_path, 'r') as f:
+                data_file = f.read()
         proxy.root.encrypt_AES(data_file, file_path, password)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.D_AES.value):
@@ -49,8 +51,10 @@ def user_input_handler(proxy, user_input_command):
         if is_not_file(file_path):
             return
         password = input(TEXT_INPUT.PASSWORD.value)
-        with open(file_path, 'rb') as f:
-            data_file = f.read()
+        data_file = None
+        if file_path.endswith('.txt'):
+            with open(file_path, 'r') as f:
+                data_file = f.read()
         proxy.root.decrypt_AES(data_file, file_path, password)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.E_DES.value):
@@ -90,6 +94,7 @@ def user_input_handler(proxy, user_input_command):
     elif(user_input_command == Command.QUIT.value):
         time.sleep(2)
         proxy.close()
+    
 
 def main():
     config = {'allow_public_attrs': True}
