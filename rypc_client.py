@@ -1,5 +1,6 @@
 import rpyc
 import time
+
 from enum import Enum
 from pathlib import Path
 import base64
@@ -60,18 +61,16 @@ def user_input_handler(proxy, user_input_command):
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.E_DES.value):
         file_path = input(TEXT_INPUT.PLAINTEXT.value)
+        data_file = None
         if is_not_file(file_path):
             return
-        with open(file_path, 'r') as f:
-            data_file = f.read()
         proxy.root.encrypt_DES(data_file, file_path)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.D_DES.value):
         file_path = input(TEXT_INPUT.CIPHERTEXT.value)
+        data_file = None
         if is_not_file(file_path):
             return
-        with open(file_path, 'rb') as f:
-            data_file = f.read()
         proxy.root.decrypt_DES(data_file, file_path)
         print(TEXT_INPUT.SUCESS.value)
     elif(user_input_command == Command.E_RC4.value):

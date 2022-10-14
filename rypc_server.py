@@ -3,17 +3,15 @@ import rpyc
 import sys
 import base64
 import hashlib
-from Cryptodome.Cipher import AES
-from Cryptodome.Random import get_random_bytes
-from Cryptodome.Cipher import DES
-from Crypto.Cipher import ARC4
-from Crypto.Hash import SHA256
-from Crypto import Random
-from Cryptodome.Util.Padding import pad, unpad
-import binascii
-import pyAesCrypt
-from timer import Timer
 import os
+import pyAesCrypt
+
+from timer import Timer
+from Cryptodome.Cipher import AES
+from Cryptodome.Cipher import DES
+from Cryptodome.Random import get_random_bytes
+from Cryptodome.Util.Padding import pad, unpad
+
 
 __key_des__ = pad(b"mykey", DES.block_size)
 __iv_des__ = pad(b"myiv", DES.block_size)
@@ -67,6 +65,46 @@ def decrypt_DES(ciphertext):
     raw_bytes = DES_obj.decrypt(ciphertext)
     extracted_bytes = unpad(raw_bytes, DES.block_size)
     return extracted_bytes
+
+def encrypt_DES_files(filename, key, iv):
+    BLOCKSIZE = 16
+    encrypted_filename = "encrypted_" + filename
+
+    with open(filename, "rb") as file1:
+        data = file1.read()
+
+        cipher = DES.new(key, DES.MODE_CBC, iv)
+        ciphertext = cipher.encrypt(pad(data, BLOCKSIZE))
+
+        with open(encrypted_filename, "wb") as file2:
+            file2.write(ciphertext)
+
+    return encrypted_filename
+
+
+def decrypt_DES_files(filename, key, iv):
+    BLOCKSIZE = 16
+    decrypted_filename = "decrypted_" + filename
+
+    with open(filename, "rb") as file1:
+        data = file1.read()
+
+        cipher2 = DES.new(key, DES.MODE_CBC, iv)
+        decrypted_data = unpad(cipher2.decrypt(data), BLOCKSIZE)
+
+        with open(decrypted_filename, "wb") as file2:
+            file2.write(decrypted_data)
+
+    return decrypted_filename
+
+def getKey(keySize):
+    key = os.urandom(keySize)
+    return key
+
+
+def getIV(blockSize):
+    iv = os.urandom(blockSize)
+    return iv
 
 def KSA(key):
     sched = [i for i in range(0, 256)]
@@ -156,22 +194,18 @@ class SecretMessageService(rpyc.Service):
         print("==========================================================")
     def exposed_encrypt_DES(self, plain_text, file_path):
         RunningTime.start()
-        ciphertext = encrypt_DES(plain_text)
-        result = binascii.hexlify(ciphertext)
-        with open(file_path, 'wb') as f:
-            f.write(result)
+        global key_des_new
+        key_des_new = getKey(8)
+        global iv_des_new
+        iv_des_new = getIV(8)
+        encrypt_DES_files(file_path, key_des_new, iv_des_new)
         print("==========================================================")
         print("Running Time - Encrypt DES Method")
         RunningTime.stop()
         print("==========================================================")
     def exposed_decrypt_DES(self, cipher_text, file_path):
         RunningTime.start()
-        plaintext = decrypt_DES(binascii.unhexlify(cipher_text))
-        if not plaintext:
-            print('Message is corrupted!')
-        else:
-            with open(file_path, 'w') as f:
-                f.write(plaintext.decode("utf-8"))
+        decrypt_DES_files(file_path, key_des_new, iv_des_new)
         print("==========================================================")
         print("Running Time - Decrypt DES Method")
         RunningTime.stop()
