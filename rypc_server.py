@@ -110,11 +110,6 @@ def encrypt_RC4(text, key):
         
     return ciphertext
 
-def enc(file_name,text, key):
-    output = file_name + ".enc"
-    ARC4.new(key).encrypt(text)
-    return output
-
 def decrypt_RC4(ciphertext, key):
     ciphertext = ciphertext.split('0X')[1:]
     ciphertext = [int('0x' + c.lower(), 0) for c in ciphertext]
@@ -200,12 +195,12 @@ class SecretMessageService(rpyc.Service):
     def exposed_decrypt_RC4(self, cipher_text, file_path, password):
         RunningTime.start()
         if file_path.endswith('.enc'):
-            output = file_path + ".dec"
-            text = decrypt_RC4(cipher_text, password)
-            plaintext = base64.b64decode(text)
-            with open(output, 'wb') as f:                
-                f.write(plaintext)
-            # print(type(plaintext))
+            dfile = file_path.split(".")
+            output = "." + dfile[0] + dfile[1] + "dec."+ dfile[2]
+            plaintext = decrypt_RC4(cipher_text, password)
+            with open(output, 'wb') as f:       
+                f.write(base64.b64decode((plaintext)))
+
         else:
             plaintext = decrypt_RC4(cipher_text, password)
             with open(file_path, 'w') as f:
