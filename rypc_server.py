@@ -1,3 +1,4 @@
+from pydoc import plain
 import rpyc
 import sys
 import base64
@@ -146,7 +147,6 @@ def encrypt_RC4(text, key):
         ciphertext += (enc)
         
     return ciphertext
-    
 
 def decrypt_RC4(ciphertext, key):
     ciphertext = ciphertext.split('0X')[1:]
@@ -212,8 +212,15 @@ class SecretMessageService(rpyc.Service):
         print("==========================================================")
     def exposed_encrypt_RC4(self, plain_text, file_path, password):
         RunningTime.start()
-        ciphertext = encrypt_RC4(plain_text, password)
-        with open(file_path, 'w') as f:
+        if file_path.endswith('.mp4') or file_path.endswith('.jpg') or file_path.endswith('.png'):
+            output = file_path + ".enc"
+            text = plain_text.decode('utf-8')
+            ciphertext = encrypt_RC4(text, password)
+            with open(output, 'w') as f:
+                f.write(ciphertext)
+        else:
+            ciphertext = encrypt_RC4(plain_text, password)
+            with open(file_path, 'w') as f:
                 f.write(ciphertext)
         print("==========================================================")
         print("Running Time - Encrypt RC4 Method")
@@ -221,8 +228,16 @@ class SecretMessageService(rpyc.Service):
         print("==========================================================")
     def exposed_decrypt_RC4(self, cipher_text, file_path, password):
         RunningTime.start()
-        plaintext = decrypt_RC4(cipher_text, password)
-        with open(file_path, 'w') as f:
+        if file_path.endswith('.enc'):
+            dfile = file_path.split(".")
+            output = "." + dfile[0] + dfile[1] + "dec."+ dfile[2]
+            plaintext = decrypt_RC4(cipher_text, password)
+            with open(output, 'wb') as f:       
+                f.write(base64.b64decode((plaintext)))
+
+        else:
+            plaintext = decrypt_RC4(cipher_text, password)
+            with open(file_path, 'w') as f:
                 f.write(plaintext)
         print("==========================================================")
         print("Running Time - Decrypt RC4 Method")
