@@ -1,8 +1,11 @@
-## Usage
+# Team
 
-```bash
-python rypc_server 127.0.0.1
-python rypc_client 127.0.0.1
-```
+- Ega Prabu Pamungkas - 05111940000014
+- Muhammad Akmal Joedhiawan - 05111940000125
+- Cliffton Delias Perangin Angin - 05111940000181
+- Reyhan Naufal Rahman - 05111940000171
 
-![Screen Shot 2022-09-27 at 8 06 33 PM](https://user-images.githubusercontent.com/59334824/192534870-bbf10cca-8fcc-46cf-a859-379c706e96ff.png)
+# Repo Structure
+
+- `/digital-signature` contains the source code of the digital signature implementation
+- `/symmetric-cipher` contains the source code of the symmetric-cipher implementation
